@@ -1,14 +1,15 @@
 # Laravel Model & Migration Generator
 ###Generates Laravel 5 models and migrations from existing MySQL database schema.
 
+Use composer to create the stub with
+```
+php artisan make:command GenerateModelFromMySQL
+php artisan make:command GenerateMigrationFromMySQL
+```
+
 Copy GenerateModelFromMySQL.php and GenerateMigrationFromMySQL.php to app/Console/Commands/
 
-Edit app/Console/Kernel.php, add the following lines to the $commands[] array:
-```
-'App\Console\Commands\GenerateModelFromMySQL',
-'App\Console\Commands\GenerateMigrationFromMySQL',
-```
-Or for Laravel 5.1:
+Update app/Console/Kernel.php and add to the $commands[] array:
 ```
 \App\Console\Commands\GenerateModelFromMySQL::class,
 \App\Console\Commands\GenerateMigrationFromMySQL::class,
