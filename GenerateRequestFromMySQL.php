@@ -31,6 +31,10 @@ class GenerateRequestFromMySQL extends Command
 		parent::__construct();
 	}
 
+	public function handle(){
+		$this->fire() ;
+	}
+
 	/**
 	 * Execute the console command.
 	 *
@@ -39,20 +43,20 @@ class GenerateRequestFromMySQL extends Command
 	public function fire()
 	{
 		preg_match('/((.+)\.)?(.+)/', $this->argument('database_table'), $matches);
-		if(empty($matches[2]))
-			$matches[2] = env('DB_DATABASE') ;	//No longer require the database name to be provided
+		if (empty($matches[2]))
+			$matches[2] = env('DB_DATABASE');    //No longer require the database name to be provided
 		if (empty($matches[2]) || empty($matches[3]))
 		{
 			$this->error('Please enter a valid Database/Table.');
 			exit();
 		}
 		$database_name = $matches[2];
-		$table_name    = $matches[3];
+		$table_name = $matches[3];
 
 		//Match the tables
 		$tables = $this->getMatchingTables($database_name, $table_name);
 
-		if(count($tables) == 0)
+		if (count($tables) == 0)
 		{
 			$this->error('Error: No tables found that match your argument: ' . $table_name);
 			exit();
@@ -80,15 +84,11 @@ class GenerateRequestFromMySQL extends Command
 		{
 			$template = $this->template();
 
-			$fields          = $this->getTableFields($database_name, $table->name);
+			$fields = $this->getTableFields($database_name, $table->name);
 
 			$template = preg_replace('/#CLASS_NAME#/', $this->camelCase1($table->name), $template);
 			$template = preg_replace('/#REQUEST_FIELDS#/', $this->generateRequestFields($fields), $template);
 
-			if ($table->name == 'user'){
-				$template_user= $this->getUserTable($database_name, $table);
-				$template= (!$template_user)? $template : $template_user;
-			}
 			file_put_contents('app/Http/Requests/' . $this->camelCase1($table->name) . 'Request.php', $template);
 
 		}
@@ -119,19 +119,6 @@ class GenerateRequestFromMySQL extends Command
 		return [
 			//['example', null, InputOption::VALUE_OPTIONAL, 'An example option.', null],
 		];
-	}
-
-	protected function getUserTable($database_name, $table)
-	{
-		if (!file_exists('app/User.php')) return false;
-
-		$template = $this->template() ;
-
-		$fields = $this->getTableFields($database_name, $table->name);
-
-		$template = preg_replace('/#REQUEST_FIELDS#/', $this->generateRequestFields($fields), $template);
-
-		return $template;
 	}
 
 
@@ -173,10 +160,10 @@ class GenerateRequestFromMySQL extends Command
 
 	private function stripFkId($string)
 	{
-		$string = preg_replace('/^fk_/', '', $string) ;
-		$string = preg_replace('/_id$/', '', $string) ;
+		$string = preg_replace('/^fk_/', '', $string);
+		$string = preg_replace('/_id$/', '', $string);
 
-		return $string ;
+		return $string;
 	}
 
 	private function getTableFields($database, $table)
@@ -199,29 +186,31 @@ class GenerateRequestFromMySQL extends Command
 
 	private function generateRequestFields($table_fields)
 	{
-		$fields = '' ;
+		$fields = '';
 
 		//Field comments, if available
 		foreach ($table_fields AS $field)
-		{//			'name' => 'required|max:128',
-			if($field->COLUMN_NAME == 'id')
-				continue ;
+		{
+			//We dont allow the ID to be passed in the request by default.
+			if ($field->COLUMN_NAME == 'id')
+				continue;
 
-			$fields .= "'{$field->COLUMN_NAME}' => '" ;
-			if($field->IS_NULLABLE != 'YES')
-				$fields .= "required|" ;
-			if(strtolower($field->COLUMN_NAME) == 'email')
-				$fields .= 'email|' ;
-			if($field->CHARACTER_MAXIMUM_LENGTH != null)
-				$fields .= "max:{$field->CHARACTER_MAXIMUM_LENGTH}|" ;
-			if(preg_match('/^fk_.{1,}_id$/', $field->COLUMN_NAME))
+			$fields .= "'{$field->COLUMN_NAME}' => '";
+			if ($field->IS_NULLABLE != 'YES')
+				$fields .= "required|";
+			if (strtolower($field->COLUMN_NAME) == 'email')
+				$fields .= 'email|';
+			if ($field->CHARACTER_MAXIMUM_LENGTH != null)
+				$fields .= "max:{$field->CHARACTER_MAXIMUM_LENGTH}|";
+			if (preg_match('/^fk_.{1,}_id$/', $field->COLUMN_NAME))
 			{
-				$fields .= 'exists:TABLE_NAME|' ;
+				$fields .= 'exists:TABLE_NAME,id|';
 			}
 
 			$fields = preg_replace("/=> ''/", "=> '',\n", $fields);
-			$fields = preg_replace('/\|$/', "',\n", $fields) ;	//Replace final pipe
-			$fields = preg_replace('/^[ ]{1,}/', "\t\t\t\t\t", $fields) ;	//Add tabs to the start of each line
+			$fields = preg_replace('/\|$/', "',\n", $fields);    //Replace final pipe
+			$fields = preg_replace("/[^']'$/", "''", $fields);    //Close hanging quotes
+			$fields = preg_replace('/^[ ]{1,}/', "\t\t\t\t\t", $fields);    //Add tabs to the start of each line
 
 		}
 
@@ -230,7 +219,7 @@ class GenerateRequestFromMySQL extends Command
 
 	private function str_replace_first($from, $to, $subject)
 	{
-		$from = '/'.preg_quote($from, '/').'/';
+		$from = '/' . preg_quote($from, '/') . '/';
 
 		return preg_replace($from, $to, $subject, 1);
 	}
@@ -266,7 +255,7 @@ class GenerateRequestFromMySQL extends Command
 				#REQUEST_FIELDS#
 			];
 		}
-	}' ;
+	}';
 
 	}
 
