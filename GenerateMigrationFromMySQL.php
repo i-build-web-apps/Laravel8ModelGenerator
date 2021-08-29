@@ -31,6 +31,11 @@ class GenerateMigrationFromMySQL extends Command
 		parent::__construct();
 	}
 
+	public function __invoke()
+	{
+		$this->fire();
+	}
+
 	/**
 	 * Execute the console command.
 	 *
@@ -39,8 +44,7 @@ class GenerateMigrationFromMySQL extends Command
 	public function fire()
 	{
 		preg_match('/(.+)\.(.+)/', $this->argument('database_table'), $matches);
-		if (empty($matches[1]) || empty($matches[2]))
-		{
+		if (empty($matches[1]) || empty($matches[2])) {
 			$this->error('Please enter a valid Database/Table.');
 			exit();
 		}
@@ -50,35 +54,31 @@ class GenerateMigrationFromMySQL extends Command
 		//Match the tables
 		$tables = $this->getMatchingTables($database_name, $table_name);
 
-		if (count($tables) == 0)
-		{
-			$this->error('Error: No tables found that match your argument: ' . $table_name);
+		if (count($tables) == 0) {
+			$this->error('Error: No tables found that match your argument: '.$table_name);
 			exit();
 		}
 
-		foreach ($tables AS $table)
-		{
-			$this->info('Migration: database/migrations/<date>_create_' . $this->camelCase1($table->name) . '_table.php');
+		foreach ($tables as $table) {
+			$this->info('Migration: database/migrations/<date>_create_'.$this->camelCase1($table->name).'_table.php');
 		}
 
 		$this->comment($this->rules());
 
-		if (!$this->confirm('Are you happy to proceed? [yes|no]'))
-		{
+		if (!$this->confirm('Are you happy to proceed? [yes|no]')) {
 			$this->error('Error: User is a chicken.');
 			exit();
 		}
 
-		foreach ($tables AS $table)
-		{
+		foreach ($tables as $table) {
 			$template = $this->template();
 
 			$template = preg_replace('/#CLASS_NAME#/', $this->camelCase1($table->name), $template);
 			$template = preg_replace('/#TABLE_NAME#/', $table->name, $template);
-			$template = preg_replace('/#FIELD_DESCRIPTORS#/', $this->generateFieldDescriptors($database_name, $table_name), $template) ;
+			$template = preg_replace('/#FIELD_DESCRIPTORS#/', $this->generateFieldDescriptors($database_name, $table_name), $template);
 			$template = preg_replace('/#FOREIGN_KEYS#/', $this->generateForeignKeys($database_name, $table_name), $template);
 
-			file_put_contents('database/migrations/' . date('Y_m_d_His_') . 'create_' . $this->camelCase1($table->name) . '_table.php', $template);
+			file_put_contents('database/migrations/'.date('Y_m_d_His_').'create_'.$this->camelCase1($table->name).'_table.php', $template);
 
 		}
 
@@ -128,114 +128,112 @@ class GenerateMigrationFromMySQL extends Command
 							WHERE columns.TABLE_SCHEMA='{$database_name}' AND columns.TABLE_NAME='{$table_name}' AND columns.COLUMN_NAME != 'id'
 							ORDER BY columns.ORDINAL_POSITION");
 
-		$descriptors = '' ;
-		$mysql_hacks = '' ;
+		$descriptors = '';
+		$mysql_hacks = '';
 
-		foreach($fields AS $field)
-		{
-			$descriptor = "\t\t\$table->" ;
-			$hack = false ;
+		foreach ($fields as $field) {
+			$descriptor = "\t\t\$table->";
+			$hack       = false;
 
-			switch(strtoupper($field->DATA_TYPE))
-			{
+			switch (strtoupper($field->DATA_TYPE)) {
 				case 'BIGINT' :
-					$descriptor .= "bigInteger('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "bigInteger('{$field->COLUMN_NAME}')";
+					break;
 				case 'BLOB' :
-					$descriptor .= "binary('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "binary('{$field->COLUMN_NAME}')";
+					break;
 				case 'LONGBLOB' :
-					$descriptor = '' ;
-					$hack = true ;
-					$mysql_hacks .= "\tDB::statement('ALTER TABLE {$database_name}.{$table_name} ADD {$field->COLUMN_NAME} LONGBLOB') ;" ;
-					break ;
+					$descriptor  = '';
+					$hack        = true;
+					$mysql_hacks .= "\tDB::statement('ALTER TABLE {$database_name}.{$table_name} ADD {$field->COLUMN_NAME} LONGBLOB') ;";
+					break;
 				case 'MEDIUMBLOB' :
-					$descriptor = '' ;
-					$hack = true ;
-					$mysql_hacks .= "\tDB::statement('ALTER TABLE {$database_name}.{$table_name} ADD {$field->COLUMN_NAME} MEDIUMBLOB') ;" ;
-					break ;
+					$descriptor  = '';
+					$hack        = true;
+					$mysql_hacks .= "\tDB::statement('ALTER TABLE {$database_name}.{$table_name} ADD {$field->COLUMN_NAME} MEDIUMBLOB') ;";
+					break;
 				case 'BOOLEAN' :
-					$descriptor .= "boolean('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "boolean('{$field->COLUMN_NAME}')";
+					break;
 				case 'CHAR' :
-					$descriptor .= "char('{$field->COLUMN_NAME}', {$field->CHARACTER_MAXIMUM_LENGTH})"  ;
-					break ;
+					$descriptor .= "char('{$field->COLUMN_NAME}', {$field->CHARACTER_MAXIMUM_LENGTH})";
+					break;
 				case 'DATE' :
-					$descriptor .= "date('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "date('{$field->COLUMN_NAME}')";
+					break;
 				case 'DATETIME' :
-					$descriptor .= "dateTime('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "dateTime('{$field->COLUMN_NAME}')";
+					break;
 				case 'DECIMAL' :
-					$descriptor .= "decimal('{$field->COLUMN_NAME}', PRECISION, SCALE)" ;
-					break ;
+					$descriptor .= "decimal('{$field->COLUMN_NAME}', PRECISION, SCALE)";
+					break;
 				case 'DOUBLE' :
-					$descriptor .= "double('{$field->COLUMN_NAME}', {$field->NUMERIC_PRECISION}, {$field->NUMERIC_SCALE})" ;
-					break ;
+					$descriptor .= "double('{$field->COLUMN_NAME}', {$field->NUMERIC_PRECISION}, {$field->NUMERIC_SCALE})";
+					break;
 				case 'ENUM' :
-					$descriptor .= "enum('{$field->COLUMN_NAME}', [" . preg_replace('/\)$/', '', preg_replace('/enum\(/', '', $field->COLUMN_TYPE)) . "])" ;
-					break ;
+					$descriptor .= "enum('{$field->COLUMN_NAME}', [".preg_replace('/\)$/', '', preg_replace('/enum\(/', '', $field->COLUMN_TYPE))."])";
+					break;
 				case 'FLOAT' :
-					$descriptor .= "float('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "float('{$field->COLUMN_NAME}')";
+					break;
 				case 'INT' : //TODO: If this is a foreign key, make it unsigned to match the AI field
-					$descriptor .= "integer('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "integer('{$field->COLUMN_NAME}')";
+					break;
 				case 'INTEGER' :
-					$descriptor .= "integer('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "integer('{$field->COLUMN_NAME}')";
+					break;
 				case 'JSON' :
-					$descriptor .= "json('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "json('{$field->COLUMN_NAME}')";
+					break;
 				case 'JSONB' :
-					$descriptor .= "jsonb('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "jsonb('{$field->COLUMN_NAME}')";
+					break;
 				case 'LONGTEXT' :
-					$descriptor .= "longText('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "longText('{$field->COLUMN_NAME}')";
+					break;
 				case 'MEDIUMINT' :
-					$descriptor .= "mediumInteger('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "mediumInteger('{$field->COLUMN_NAME}')";
+					break;
 				case 'MEDIUMTEXT' :
-					$descriptor .= "mediumText('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "mediumText('{$field->COLUMN_NAME}')";
+					break;
 				case 'SMALLINT' :
-					$descriptor .= "smallInteger('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "smallInteger('{$field->COLUMN_NAME}')";
+					break;
 				case 'VARCHAR' :
-					$descriptor .= "string('{$field->COLUMN_NAME}', {$field->CHARACTER_MAXIMUM_LENGTH})" ;
-					break ;
+					$descriptor .= "string('{$field->COLUMN_NAME}', {$field->CHARACTER_MAXIMUM_LENGTH})";
+					break;
 				case 'TEXT' :
-					$descriptor .= "text('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "text('{$field->COLUMN_NAME}')";
+					break;
 				case 'TIME' :
-					$descriptor .= "time('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "time('{$field->COLUMN_NAME}')";
+					break;
 				case 'TINYINT' :
-					$descriptor .= "tinyInteger('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "tinyInteger('{$field->COLUMN_NAME}')";
+					break;
 				case 'TIMESTAMP' :
-					$descriptor .= "timestamp('{$field->COLUMN_NAME}')" ;
-					break ;
+					$descriptor .= "timestamp('{$field->COLUMN_NAME}')";
+					break;
 				default:
-					break ;
+					break;
 			}
 
-			if(!$hack)
-			{
+			if (!$hack) {
 				$descriptor .= $this->generateNullable($field);
 				$descriptor .= $this->generateFieldUniqueness($field);
 				$descriptor .= $this->generateDefault($field);
 			}
-			$descriptors .= $descriptor . " ;\n" ;
+			$descriptors .= $descriptor." ;\n";
 		}
 
-		$descriptors .= "\n" ;
+		$descriptors .= "\n";
 
-		if(!empty($mysql_hacks))
-			$descriptors .= "\n{$mysql_hacks}\n" ;
+		if (!empty($mysql_hacks)) {
+			$descriptors .= "\n{$mysql_hacks}\n";
+		}
 
-		return $descriptors ;
+		return $descriptors;
 
 	}
 
@@ -247,56 +245,60 @@ class GenerateMigrationFromMySQL extends Command
 								  WHERE TABLE_SCHEMA='{$database_name}' AND TABLE_NAME='{$table_name}'
 								AND REFERENCED_COLUMN_NAME IS NOT NULL");
 
-		if(empty($fields))
-			return '' ;
+		if (empty($fields)) {
+			return '';
+		}
 
 		$foreign_keys = "\t/**  Foreign Key Relations  **/\n";
 
-		foreach($fields AS $field)
-		{
+		foreach ($fields as $field) {
 			$foreign_keys .= "\n\t\t\$table->index('{$field->COLUMN_NAME}') ; \$table->foreign('{$field->COLUMN_NAME}')->references('{$field->REFERENCED_TABLE_NAME}')->on('{$field->REFERENCED_COLUMN_NAME}') ;"; //->onDelete('cascade')" ;
 		}
 
-		return $foreign_keys ;
+		return $foreign_keys;
 	}
 
 	private function generateFieldUniqueness($field)
 	{
-		if($field->COLUMN_KEY == 'UNI')
-			return '->unique()' ;
+		if ($field->COLUMN_KEY == 'UNI') {
+			return '->unique()';
+		}
 
-		return '' ;
+		return '';
 	}
 
 	private function generateFieldLength($length)
 	{
-		if(empty($length))
-			return '' ;
+		if (empty($length)) {
+			return '';
+		}
 
-		return ", {$length}" ;
+		return ", {$length}";
 	}
 
 	private function generateNullable($field)
 	{
-		if($field->IS_NULLABLE == 'NO')
-			return '' ;
+		if ($field->IS_NULLABLE == 'NO') {
+			return '';
+		}
 
-		return '->nullable()' ;
+		return '->nullable()';
 	}
 
 	private function generateDefault($field)
 	{
-		if(!empty($field->COLUMN_DEFAULT) && (!empty(stringValue($field->COLUMN_DEFAULT))))
-			return "->default('{$field->COLUMN_DEFAULT}')" ;
+		if (!empty($field->COLUMN_DEFAULT) && (!empty($field->COLUMN_DEFAULT))) {
+			return "->default('{$field->COLUMN_DEFAULT}')";
+		}
 
-		return '' ;
+		return '';
 	}
 
 	//Camel case with init cap
 	private function camelCase1($string, array $noStrip = [])
 	{
 		// non-alpha and non-numeric characters become spaces
-		$string = preg_replace('/[^a-z0-9' . implode("", $noStrip) . ']+/i', ' ', $string);
+		$string = preg_replace('/[^a-z0-9'.implode("", $noStrip).']+/i', ' ', $string);
 		$string = trim($string);
 		// uppercase the first character of each word
 		$string = ucwords($string);
@@ -309,7 +311,7 @@ class GenerateMigrationFromMySQL extends Command
 	private function camelCase2($string, array $noStrip = [])
 	{
 		// non-alpha and non-numeric characters become spaces
-		$string = preg_replace('/[^a-z0-9' . implode("", $noStrip) . ']+/i', ' ', $string);
+		$string = preg_replace('/[^a-z0-9'.implode("", $noStrip).']+/i', ' ', $string);
 		$string = trim($string);
 		// uppercase the first character of each word
 		$string = ucwords($string);
