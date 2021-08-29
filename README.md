@@ -1,5 +1,5 @@
 # Laravel Model & Migration Generator
-###Generates Laravel 5 models and migrations from existing MySQL database schema.
+###Generates Laravel 8 models and migrations from existing MySQL database schema.
 
 Use composer to create the stub with
 ```
@@ -13,6 +13,7 @@ Update app/Console/Kernel.php and add to the $commands[] array:
 ```
 \App\Console\Commands\GenerateModelFromMySQL::class,
 \App\Console\Commands\GenerateMigrationFromMySQL::class,
+\App\Console\Commands\GenerateRequestFromMySQL::class,
 ```
 
 Set up your MySQL connection within Laravel, then use the generator as follows:
